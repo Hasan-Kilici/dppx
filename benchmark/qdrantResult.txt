@@ -1,0 +1,17 @@
+========== RESULTS ==========
+ITEM=6861 SCORE=0.1796 CATEGORY=recommendation
+ITEM=7999 SCORE=0.1795 CATEGORY=vector-search
+ITEM=4418 SCORE=0.1789 CATEGORY=distributed-systems
+ITEM=8565 SCORE=0.1786 CATEGORY=distributed-systems
+ITEM=5953 SCORE=0.1777 CATEGORY=backend
+ITEM=8449 SCORE=0.1753 CATEGORY=distributed-systems
+ITEM=1676 SCORE=0.1753 CATEGORY=distributed-systems
+ITEM=866 SCORE=0.1750 CATEGORY=devops
+ITEM=8592 SCORE=0.1748 CATEGORY=distributed-systems
+ITEM=2446 SCORE=0.1743 CATEGORY=recommendation
+
+========== BENCHMARK ==========
+Collection: blogs
+Inserted Items: 10000
+Vector Size: 768
+Latency: 196.1845ms

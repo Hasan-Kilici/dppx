@@ -1,18 +1,27 @@
 package engine
 
-import "github.com/hasan-kilici/dppx/types"
+import (
+	"context"
 
-// Select returns the top-k items only, omitting score metadata.
+	"github.com/hasan-kilici/dppx/types"
+)
+
+// Select returns only items without scores.
 func (e *Engine) Select(
-	items []types.Item,
+	ctx context.Context,
+	query types.Query,
 	k int,
-) []types.Item {
+) ([]types.Item, error) {
 
-	results := e.Search(
-		types.Query{},
-		items,
+	results, err := e.Search(
+		ctx,
+		query,
 		k,
 	)
+
+	if err != nil {
+		return nil, err
+	}
 
 	final := make([]types.Item, 0, len(results))
 
@@ -20,5 +29,5 @@ func (e *Engine) Select(
 		final = append(final, result.Item)
 	}
 
-	return final
+	return final, nil
 }
