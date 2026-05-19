@@ -5,18 +5,24 @@ import (
 	"github.com/hasan-kilici/dppx/types"
 )
 
-// Personalization measures
-// vector similarity between
-// query and item embeddings.
+// Personalization returns a scorer
+// using a configurable similarity metric.
 func Personalization(
-	query types.Query,
-	item types.Item,
-) float64 {
+	fn similarity.Func,
+) Func {
 
-	return similarity.Cosine(
-		query.Vector,
-		item.Vector,
-		query.Norm,
-		item.Norm,
-	)
+	if fn == nil {
+		fn = similarity.Cosine
+	}
+
+	return func(
+		query types.Query,
+		item types.Item,
+	) float64 {
+
+		return fn(
+			query.Vector,
+			item.Vector,
+		)
+	}
 }

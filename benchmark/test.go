@@ -54,15 +54,23 @@ func main() {
 		Similarity: similarity.Cosine,
 
 		Scoring: scoring.Combine(
-			scoring.Weighted{
-				Func:   scoring.Popularity,
-				Weight: 1.0,
-			},
-			scoring.Weighted{
-				Func:   scoring.FreshnessBoost,
-				Weight: 0.3,
-			},
-		),
+            scoring.Weighted{
+                Func: scoring.Popularity,
+                Weight: 0.6,
+            },
+
+            scoring.Weighted{
+                Func: scoring.FreshnessBoost,
+                Weight: 0.3,
+            },
+
+            scoring.Weighted{
+                Func: scoring.Personalization(
+                    similarity.Cosine,
+                ),
+                Weight: 0.8,
+            },
+        ),
 
 		Sampler: sampling.MMR{
 			Lambda: 0.7,
@@ -140,7 +148,6 @@ func generateProducts(
 	items := make([]types.Item, n)
 
 	for i := 0; i < n; i++ {
-
 		topic := rand.Intn(
 			Topics,
 		)
@@ -164,9 +171,7 @@ func generateProducts(
 
 			Metadata: map[string]any{
 				"topic": topic,
-
 				"popularity": pareto(),
-
 				"created_at": time.Now().Add(
 					-time.Duration(
 						rand.Intn(720),
@@ -183,7 +188,6 @@ func generateCenters(
 	k,
 	dim int,
 ) []types.Vector {
-
 	c := make([]types.Vector, k)
 
 	for i := range c {
@@ -196,7 +200,6 @@ func generateCenters(
 func randomVec(
 	n int,
 ) types.Vector {
-
 	v := make(types.Vector, n)
 
 	for i := range v {
@@ -210,7 +213,6 @@ func noisy(
 	base types.Vector,
 	noise float32,
 ) types.Vector {
-
 	v := make(
 		types.Vector,
 		len(base),
@@ -227,7 +229,6 @@ func noisy(
 }
 
 func pareto() float64 {
-
 	alpha := 1.4
 
 	return 1 / math.Pow(

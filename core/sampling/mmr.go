@@ -7,23 +7,32 @@ import (
 	"github.com/hasan-kilici/dppx/types"
 )
 
-// similarityPair is used as a cache key for symmetric pairwise similarity lookups.
+// similarityPair caches pairwise similarities.
 type similarityPair struct {
 	A string
 	B string
 }
 
-// MMR implements Maximal Marginal Relevance sampling to balance relevance and diversity.
+// MMR implements Maximal Marginal Relevance.
 type MMR struct {
+
+	// Lambda balances:
+	// relevance vs diversity
 	Lambda float64
+
+	// Similarity metric used
+	// for diversity comparison.
+	Similarity similarity.Func
 }
 
 func getSimilarity(
 	cache map[similarityPair]float64,
+
+	fn similarity.Func,
+
 	a types.ScoredItem,
 	b types.ScoredItem,
 ) float64 {
-	// Reuse symmetric similarity values to avoid redundant cosine computations.
 
 	key := similarityPair{
 		A: a.Item.ID,
@@ -43,11 +52,9 @@ func getSimilarity(
 		return sim
 	}
 
-	sim := similarity.Cosine(
+	sim := fn(
 		a.Item.Vector,
 		b.Item.Vector,
-		a.Item.Norm,
-		b.Item.Norm,
 	)
 
 	cache[key] = sim
@@ -55,8 +62,7 @@ func getSimilarity(
 	return sim
 }
 
-// Sample chooses a diverse subset of scored items using the MMR objective.
-// Higher lambda favors relevance, lower lambda favors diversity.
+// Sample selects diverse results.
 func (m MMR) Sample(
 	_ types.Query,
 	items []types.ScoredItem,
@@ -67,29 +73,49 @@ func (m MMR) Sample(
 		return items
 	}
 
-	cache := make(map[similarityPair]float64)
+	/*Default similarity*/
+	if m.Similarity == nil {
+		m.Similarity = similarity.Cosine
+	}
 
-	selected := make([]types.ScoredItem, 0, k)
+	cache := make(
+		map[similarityPair]float64,
+	)
 
-	remaining := make([]types.ScoredItem, len(items))
+	selected := make(
+		[]types.ScoredItem,
+		0,
+		k,
+	)
+
+	remaining := make(
+		[]types.ScoredItem,
+		len(items),
+	)
+
 	copy(remaining, items)
 
-	selected = append(selected, remaining[0])
+	selected = append(
+		selected,
+		remaining[0],
+	)
+
 	remaining = remaining[1:]
 
-	for len(selected) < k && len(remaining) > 0 {
+	for len(selected) < k &&
+		len(remaining) > 0 {
 
 		bestIdx := 0
+
 		bestScore := math.Inf(-1)
 
 		for i, candidate := range remaining {
-
 			maxSimilarity := 0.0
-
 			for _, chosen := range selected {
 
 				sim := getSimilarity(
 					cache,
+					m.Similarity,
 					candidate,
 					chosen,
 				)
@@ -104,6 +130,7 @@ func (m MMR) Sample(
 					((1 - m.Lambda) * maxSimilarity)
 
 			if mmrScore > bestScore {
+
 				bestScore = mmrScore
 				bestIdx = i
 			}

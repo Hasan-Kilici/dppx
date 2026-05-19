@@ -48,7 +48,6 @@ func (r *Retriever) Search(
 	query types.Query,
 	limit int,
 ) ([]types.Item, error) {
-
 	opts := DefaultSearchOptions()
 	opts.Limit = limit
 
@@ -65,7 +64,6 @@ func (r *Retriever) SearchWithOptions(
 	query types.Query,
 	opts SearchOptions,
 ) ([]types.Item, error) {
-
 	limit := uint64(
 		opts.Limit,
 	)

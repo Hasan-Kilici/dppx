@@ -61,13 +61,10 @@ func (e *Engine) Search(
 		) {
 			defer wg.Done()
 			for item := range jobs {
-				similarityScore :=
-					e.config.Similarity(
-						query.Vector,
-						item.Vector,
-						query.Norm,
-						item.Norm,
-					)
+				similarityScore := e.config.Similarity(
+					query.Vector,
+					item.Vector,
+				)
 
 				customScore := 0.0
 				if e.config.Scoring != nil {

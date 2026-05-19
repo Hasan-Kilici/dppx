@@ -4,7 +4,7 @@ import (
 	"github.com/hasan-kilici/dppx/core/retriever"
 	"github.com/hasan-kilici/dppx/core/sampling"
 	"github.com/hasan-kilici/dppx/core/scoring"
-	"github.com/hasan-kilici/dppx/types"
+	"github.com/hasan-kilici/dppx/core/similarity"
 )
 
 // Config defines engine behavior.
@@ -14,12 +14,7 @@ type Config struct {
 	Retriever retriever.Retriever
 
 	// Similarity computes vector similarity.
-	Similarity func(
-		a types.Vector,
-		b types.Vector,
-		aNorm float32,
-		bNorm float32,
-	) float64
+	Similarity similarity.Func
 
 	// Optional business scoring layer.
 	Scoring scoring.Func

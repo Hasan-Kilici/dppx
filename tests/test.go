@@ -40,7 +40,7 @@ func main() {
 
 		CandidatePool: 10,
 
-		Similarity: similarity.Cosine,
+		Similarity: similarity.Dot,
 	}
 
 	eng := engine.New(cfg)

@@ -176,19 +176,23 @@ func main() {
 			Business scoring pipeline.
 		*/
 		Scoring: scoring.Combine(
-			scoring.Weighted{
-				Func:   scoring.Popularity,
-				Weight: 0.6,
-			},
-			scoring.Weighted{
-				Func:   scoring.FreshnessBoost,
-				Weight: 0.3,
-			},
-			scoring.Weighted{
-				Func:   scoring.Personalization,
-				Weight: 0.8,
-			},
-		),
+            scoring.Weighted{
+                Func: scoring.Popularity,
+                Weight: 0.6,
+            },
+
+            scoring.Weighted{
+                Func: scoring.FreshnessBoost,
+                Weight: 0.3,
+            },
+
+            scoring.Weighted{
+                Func: scoring.Personalization(
+                    similarity.Cosine,
+                ),
+                Weight: 0.8,
+            },
+        ),
 
 		/*
 			Diversity-aware reranking.

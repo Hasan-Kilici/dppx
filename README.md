@@ -66,7 +66,7 @@ go get github.com/hasan-kilici/dppx
 
 English 🇬🇧
 
-Use the in-memory retriever from `core/retriever/memory` for a minimal local example. This shows the required `engine.Config.Retriever`, candidate pool, and `Search` call with `context.Context`.
+Use the in-memory retriever from `core/retriever/memory` for a minimal local example. This follows `tests/test.go` and shows the required `engine.Config.Retriever`, candidate pool, and `Search` call with `context.Context`.
 
 ```go
 package main
@@ -75,16 +75,25 @@ import (
     "context"
     "fmt"
 
-    mem "github.com/hasan-kilici/dppx/core/retriever/memory"
     "github.com/hasan-kilici/dppx/core/engine"
+    mem "github.com/hasan-kilici/dppx/core/retriever/memory"
     "github.com/hasan-kilici/dppx/core/similarity"
     "github.com/hasan-kilici/dppx/types"
 )
 
 func main() {
+    // Build a small in-memory candidate set.
     items := []types.Item{
-        {ID: "a", Vector: types.Vector{0.1, 0.2, 0.3}, Norm: 0.374},
-        {ID: "b", Vector: types.Vector{0.2, 0.1, 0.4}, Norm: 0.469},
+        {
+            ID: "a",
+            Vector: types.Vector{0.1, 0.2, 0.3},
+            Norm:   0.374,
+        },
+        {
+            ID: "b",
+            Vector: types.Vector{0.2, 0.1, 0.4},
+            Norm:   0.469,
+        },
     }
 
     retr := mem.New(items)
@@ -92,11 +101,15 @@ func main() {
     cfg := engine.Config{
         Retriever:     retr,
         CandidatePool: 10,
-        Similarity:    similarity.Cosine,
+        Similarity:    similarity.Dot,
     }
 
     eng := engine.New(cfg)
-    query := types.Query{Vector: types.Vector{0.1, 0.2, 0.3}, Norm: 0.374}
+
+    query := types.Query{
+        Vector: types.Vector{0.1, 0.2, 0.3},
+        Norm:   0.374,
+    }
 
     results, err := eng.Search(context.Background(), query, 10)
     if err != nil {
@@ -167,9 +180,20 @@ func main() {
         CandidatePool: 200,
         Similarity:    similarity.Cosine,
         Scoring: scoring.Combine(
-            scoring.Weighted{Func: scoring.Popularity, Weight: 0.6},
-            scoring.Weighted{Func: scoring.FreshnessBoost, Weight: 0.3},
-            scoring.Weighted{Func: scoring.Personalization, Weight: 0.8},
+            scoring.Weighted{
+                Func:   scoring.Popularity,
+                Weight: 0.6,
+            },
+            scoring.Weighted{
+                Func:   scoring.FreshnessBoost,
+                Weight: 0.3,
+            },
+            scoring.Weighted{
+                Func: scoring.Personalization(
+                    similarity.Cosine,
+                ),
+                Weight: 0.8,
+            },
         ),
         Sampler: sampling.MMR{Lambda: 0.7},
     })
