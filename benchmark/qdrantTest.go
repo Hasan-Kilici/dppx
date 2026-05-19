@@ -19,8 +19,9 @@ import (
 const (
 	CollectionName = "blogs"
 
-	VectorSize = 768
-	InsertCount = 10000
+	VectorSize   = 768
+	InsertCount  = 10000
+	CandidatePool = 200
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 	ctx := context.Background()
 
 	/*
-		QDRANT CONNECTOR
+		Create Qdrant retriever.
 	*/
 
 	retr, err := qdrant.New(qdrant.Config{
@@ -44,7 +45,10 @@ func main() {
 	}
 
 	/*
-		CREATE COLLECTION
+		Create collection.
+
+		If collection already exists,
+		Qdrant will return an error.
 	*/
 
 	err = retr.Client.CreateCollection(
@@ -62,6 +66,7 @@ func main() {
 	)
 
 	if err != nil {
+
 		fmt.Println(
 			"collection may already exist:",
 			err,
@@ -69,7 +74,10 @@ func main() {
 	}
 
 	/*
-		INSERT DATASET
+		Insert synthetic dataset.
+
+		This simulates a real-world
+		recommendation/search corpus.
 	*/
 
 	fmt.Println("inserting dataset...")
@@ -108,10 +116,6 @@ func main() {
 			rand.Float64(),
 		)
 
-		languageValue, _ := qdrantclient.NewValue(
-			"en",
-		)
-
 		point := &qdrantclient.PointStruct{
 			Id: qdrantclient.NewIDNum(
 				uint64(i + 1),
@@ -126,7 +130,6 @@ func main() {
 				"category":   categoryValue,
 				"author_id":  authorValue,
 				"popularity": popularityValue,
-				"language":   languageValue,
 			},
 		}
 
@@ -151,16 +154,27 @@ func main() {
 	fmt.Println("dataset inserted")
 
 	/*
-		DPPX ENGINE
+		Create DPPX engine.
 	*/
 
 	eng := engine.New(engine.Config{
 		Retriever: retr,
 
-		CandidatePool: 200,
+		/*
+			Candidate pool controls how many
+			ANN candidates are retrieved
+			before reranking/diversification.
+		*/
+		CandidatePool: CandidatePool,
 
+		/*
+			Vector similarity function.
+		*/
 		Similarity: similarity.Cosine,
 
+		/*
+			Business scoring pipeline.
+		*/
 		Scoring: scoring.Combine(
 			scoring.Weighted{
 				Func:   scoring.Popularity,
@@ -176,13 +190,23 @@ func main() {
 			},
 		),
 
+		/*
+			Diversity-aware reranking.
+		*/
 		Sampler: sampling.MMR{
 			Lambda: 0.7,
 		},
 	})
 
 	/*
-		QUERY
+		Create query vector.
+
+		In production this usually comes from:
+		- OpenAI embeddings
+		- BGE
+		- E5
+		- sentence-transformers
+		- Cohere embeddings
 	*/
 
 	query := types.Query{
@@ -193,12 +217,17 @@ func main() {
 		),
 	}
 
+	/*
+		Precompute vector norm
+		for cosine similarity optimization.
+	*/
+
 	query.Norm = similarity.Norm(
 		query.Vector,
 	)
 
 	/*
-		BENCHMARK
+		Run retrieval pipeline.
 	*/
 
 	fmt.Println()
@@ -219,7 +248,7 @@ func main() {
 	duration := time.Since(start)
 
 	/*
-		RESULTS
+		Print results.
 	*/
 
 	fmt.Println()
@@ -234,6 +263,10 @@ func main() {
 			result.Item.Metadata["category"],
 		)
 	}
+
+	/*
+		Print benchmark stats.
+	*/
 
 	fmt.Println()
 	fmt.Println("========== BENCHMARK ==========")
@@ -254,10 +287,23 @@ func main() {
 	)
 
 	fmt.Printf(
+		"Candidate Pool: %d\n",
+		CandidatePool,
+	)
+
+	fmt.Printf(
 		"Latency: %s\n",
 		duration,
 	)
 }
+
+/*
+	randomVector creates
+	a random embedding vector.
+
+	Replace this with real embeddings
+	in production systems.
+*/
 
 func randomVector(
 	size int,
@@ -274,6 +320,11 @@ func randomVector(
 
 	return v
 }
+
+/*
+	randomCategory generates
+	a synthetic content category.
+*/
 
 func randomCategory() string {
 

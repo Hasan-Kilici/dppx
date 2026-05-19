@@ -1,28 +1,38 @@
 package scoring
 
 import (
+	"math"
 	"time"
 
 	"github.com/hasan-kilici/dppx/types"
 )
 
-// FreshnessBoost gives newer items a higher score with a 24-hour half-life decay.
+// FreshnessBoost boosts newer content.
+//
+// Expected metadata:
+//
+//	item.Metadata["created_at"] = time.Time
+//
+// Default half-life is 24 hours.
 func FreshnessBoost(
 	_ types.Query,
 	item types.Item,
 ) float64 {
-
 	if item.Metadata == nil {
 		return 0
 	}
 
 	createdAt, ok := item.Metadata["created_at"].(time.Time)
+
 	if !ok {
 		return 0
 	}
 
-	hours := time.Since(createdAt).Hours()
+	hours := time.Since(
+		createdAt,
+	).Hours()
 
-	// newer content => higher score
-	return 1 / (1 + hours/24)
+	return math.Exp(
+		-hours / 24,
+	)
 }

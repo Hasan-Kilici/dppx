@@ -5,7 +5,9 @@ import (
 	"github.com/hasan-kilici/dppx/types"
 )
 
-// Personalization scores an item by measuring similarity to the query vector.
+// Personalization measures
+// vector similarity between
+// query and item embeddings.
 func Personalization(
 	query types.Query,
 	item types.Item,

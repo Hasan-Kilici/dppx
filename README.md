@@ -1,60 +1,60 @@
 # DPPX
 
-English / Türkçe
+English 🇬🇧 / Türkçe 🇹🇷
 
-DPPX is a lightweight Go library for producing relevance-aware and diversity-friendly top-k results. It combines vector similarity with optional business scoring and supports diversity-aware selection strategies (DPP-inspired engineering) while remaining easy to integrate and extend.
+DPPX is a Go library for diversity-aware ranking and recommendation. It combines vector similarity, configurable business scoring, and optional retrieval connectors to produce balanced top-k results without heavy infrastructure.
 
-DPPX, ilgili sonuçları korurken çeşitliliği teşvik eden hafif bir Go kütüphanesidir. Vektör benzerliği ile isteğe bağlı iş puanlamasını birleştirir ve DPP esintili çeşitlilik stratejilerine destek verir; kullanım ve genişletme açısından basit kalır.
+DPPX, çeşitlilik odaklı sıralama ve öneri çözümleri için geliştirilmiş bir Go kütüphanesidir. Vektör benzerliği, yapılandırılabilir iş puanlaması ve opsiyonel retriever bağlayıcıları ile ağır altyapıya gerek kalmadan dengeli top-k sonuçlar üretir.
 
 ---
 
 ## What is DPPX? / DPPX Nedir?
 
-English
+English 🇬🇧
 
-DPPX provides a configurable search engine to score and rank candidate items using vector similarity and optional custom scoring. The engine is implemented with parallel workers and a merge-based top-k strategy for throughput and predictable memory usage.
+DPPX is a flexible search engine framework that ranks candidate items by combining vector similarity with optional business scoring. It uses parallel workers, local top-k heaps, and a merge step for efficient scoring on large candidate sets.
 
-Türkçe
+Türkçe 🇹🇷
 
-DPPX, vektör benzerliği ve isteğe bağlı özel puanlama kullanarak aday öğeleri puanlayan ve sıralayan yapılandırılabilir bir arama motoru sunar. Motor, yüksek verim için paralel işçiler ve öngörülebilir bellek kullanımı için birleştirme tabanlı top-k stratejisiyle uygulanmıştır.
+DPPX, aday öğeleri vektör benzerliği ve isteğe bağlı iş puanlamasıyla birleştiren esnek bir arama motoru çerçevesidir. Büyük aday kümelerinde verimli puanlama için paralel işçiler, yerel top-k heap'leri ve birleştirme adımı kullanır.
 
 ---
 
-## Why diversity / Çeşitlilik neden önemli?
+## Why diversity matters / Çeşitlilik neden önemli?
 
-English
+English 🇬🇧
 
-Recommenders and search systems can return many near-duplicate items if they optimize only for relevance. Diversity-aware selection helps reduce redundancy and surfaces a broader, more useful set of items to users.
+Systems that optimize only for relevance can return redundant or overly similar items. Diversity-aware ranking helps surface varied, useful results without sacrificing relevance.
 
-Türkçe
+Türkçe 🇹🇷
 
-Sadece alaka odaklı sistemler, birbirine çok benzeyen sonuçlar döndürebilir. Çeşitlilik odaklı seçim, tekrarları azaltır ve kullanıcılara daha çeşitli ve faydalı öğeler sunar.
+Sadece alaka odaklı sistemler, tekrarlayan veya aşırı benzer sonuçlar döndürebilir. Çeşitlilik odaklı sıralama, alakayı korurken daha geniş ve faydalı bir sonuç seti sunmaya yardımcı olur.
 
 ---
 
 ## Key Features / Temel Özellikler
 
-- English / Türkçe
-- Parallel top-k search using CPU workers / CPU işçi süreçleriyle paralel top-k arama
-- Configurable similarity and business scoring hooks / Yapılandırılabilir benzerlik ve iş puanlama kancaları
-- Extensible sampling/selection strategies (MMR, TopK, Random, etc.) / Genişletilebilir örnekleme/seçim stratejileri (MMR, TopK, Random vb.)
-- Small core with predictable memory usage per worker / Her işçi için öngörülebilir bellek kullanımı sağlayan küçük çekirdek
+- Parallel top-k scoring with CPU workers / CPU işçileriyle paralel top-k skorlaması
+- Configurable similarity and scoring hooks / Yapılandırılabilir benzerlik ve puanlama kancaları
+- Pluggable retriever connectors for ANN stores / ANN depoları için takılabilir retriever bağlayıcıları
+- Extensible sampling and reranking strategies / Genişletilebilir örnekleme ve yeniden sıralama stratejileri
+- Small core design with predictable per-worker memory use / Her işçi için öngörülebilir bellek kullanımı sağlayan küçük çekirdek tasarım
 
 ---
 
 ## Installation / Kurulum
 
-English
+English 🇬🇧
 
-Install with `go get`:
+Install with Go modules:
 
 ```bash
 go get github.com/hasan-kilici/dppx
 ```
 
-Türkçe
+Türkçe 🇹🇷
 
-`go get` ile kurulum:
+Go modülü ile kurulum:
 
 ```bash
 go get github.com/hasan-kilici/dppx
@@ -64,9 +64,9 @@ go get github.com/hasan-kilici/dppx
 
 ## Quick Start / Hızlı Başlangıç
 
-English
+English 🇬🇧
 
-Simple example that demonstrates the in-repo `tests` usage: create an in-memory retriever, build an engine, and call `Search` with a `context.Context`.
+Use the in-memory retriever from `core/retriever/memory` for a minimal local example. This shows the required `engine.Config.Retriever`, candidate pool, and `Search` call with `context.Context`.
 
 ```go
 package main
@@ -75,20 +75,18 @@ import (
     "context"
     "fmt"
 
-    "github.com/hasan-kilici/dppx/core/engine"
     mem "github.com/hasan-kilici/dppx/core/retriever/memory"
+    "github.com/hasan-kilici/dppx/core/engine"
     "github.com/hasan-kilici/dppx/core/similarity"
     "github.com/hasan-kilici/dppx/types"
 )
 
 func main() {
-    // prepare in-memory items (example data)
     items := []types.Item{
         {ID: "a", Vector: types.Vector{0.1, 0.2, 0.3}, Norm: 0.374},
         {ID: "b", Vector: types.Vector{0.2, 0.1, 0.4}, Norm: 0.469},
     }
 
-    // create a simple retriever backed by memory
     retr := mem.New(items)
 
     cfg := engine.Config{
@@ -98,47 +96,46 @@ func main() {
     }
 
     eng := engine.New(cfg)
-
     query := types.Query{Vector: types.Vector{0.1, 0.2, 0.3}, Norm: 0.374}
 
-    // execute search with context and handle errors
-    res, err := eng.Search(context.Background(), query, 10)
+    results, err := eng.Search(context.Background(), query, 10)
     if err != nil {
         panic(err)
     }
 
-    fmt.Println(res)
+    fmt.Println(results)
 }
 ```
 
-Türkçe
+Türkçe 🇹🇷
 
-Aşağıdaki örnek `tests` klasöründeki kullanıma uygundur: bellek tabanlı bir retriever oluşturun, motoru yapılandırın ve `context.Context` ile `Search` çağırın.
-
+`tests/test.go` dosyasına uygun basit bir örnek. `engine.Config.Retriever` gereklidir ve `context.Context` ile `Search` çağrılır.
 
 ---
 
 ## Advanced Usage / Gelişmiş Kullanım
 
-English
+English 🇬🇧
 
-- `engine.Config.Scoring` accepts a function `func(query types.Query, item types.Item) float64` to apply business logic.
-- `engine.Config.Similarity` accepts a function `func(a types.Vector, b types.Vector, aNorm, bNorm float32) float64` — pass precomputed norms to avoid repeated sqrt.
-- `engine.Config.Sampler` supports pluggable selection strategies such as `sampling.MMR`, `sampling.TopK`, and `sampling.Random`.
+- `engine.Config.Retriever` is required and provides candidates from memory, connectors, or external ANN stores.
+- `engine.Config.Similarity` accepts `func(a types.Vector, b types.Vector, aNorm, bNorm float32) float64`.
+- `engine.Config.Scoring` accepts `func(query types.Query, item types.Item) float64`.
+- `engine.Config.Sampler` supports strategies such as `sampling.MMR`, `sampling.TopK`, and `sampling.Random`.
 
-Türkçe
+Türkçe 🇹🇷
 
-- `engine.Config.Scoring` iş mantığı uygulamak için `func(query types.Query, item types.Item) float64` imzasını kabul eder.
-- `engine.Config.Similarity` `func(a types.Vector, b types.Vector, aNorm, bNorm float32) float64` imzasını kabul eder — tekrar eden sqrt işlemlerini önlemek için normları önceden hesaplayın.
-- `engine.Config.Sampler` `sampling.MMR`, `sampling.TopK`, `sampling.Random` gibi takılabilir seçim stratejilerini destekler.
+- `engine.Config.Retriever` gereklidir ve bellek, bağlayıcılar veya harici ANN depolarından aday sağlar.
+- `engine.Config.Similarity` `func(a types.Vector, b types.Vector, aNorm, bNorm float32) float64` imzasını kabul eder.
+- `engine.Config.Scoring` `func(query types.Query, item types.Item) float64` imzasını kabul eder.
+- `engine.Config.Sampler` `sampling.MMR`, `sampling.TopK`, `sampling.Random` gibi stratejileri destekler.
 
 ---
 
 ## Connector Example: Qdrant / Bağlayıcı Örneği: Qdrant
 
-English
+English 🇬🇧
 
-If you use an external ANN store like Qdrant, DPPX supports a retriever connector that fetches candidates from the vector DB and converts them into `types.Item` objects for reranking. The following example is adapted from the repository `tests/qdrant.go` file.
+For external ANN retrieval, the Qdrant connector can fetch candidates and map them into `types.Item`. This example follows the `tests/qdrant.go` implementation.
 
 ```go
 package main
@@ -156,7 +153,6 @@ import (
 )
 
 func main() {
-    // create a Qdrant retriever (see tests/qdrant.go)
     retr, err := qdrant.New(qdrant.Config{
         Host:       "localhost",
         Port:       6334,
@@ -191,85 +187,93 @@ func main() {
     }
 }
 
-// randomVector is a simple placeholder — replace with real embeddings in production.
 func randomVector(size int) types.Vector {
     v := make(types.Vector, size)
-    for i := range v { v[i] = 0.5 }
+    for i := range v {
+        v[i] = 0.5
+    }
     return v
 }
 ```
 
-Türkçe
+Türkçe 🇹🇷
 
-Qdrant gibi harici bir ANN deposu kullanıyorsanız, DPPX bu veritabanından adayları alıp `types.Item`'a dönüştüren bir retriever bağlayıcısını destekler. Yukarıdaki örnek `tests/qdrant.go` dosyasından uyarlanmıştır.
+Qdrant bağlayıcısı, harici ANN sorgularını alır, dönüşen sonuçları `types.Item` olarak işlemenizi sağlar ve DPPX skorlamasına dahil eder.
 
+---
 
 ## Mathematical Notes / Matematiksel Notlar
 
-English
+English 🇬🇧
 
-DPPX is inspired by Determinantal Point Processes (DPP): a mathematical model that prefers subsets with both high-quality items and low pairwise similarity. This implementation does not build a full DPP kernel matrix by default, but it provides patterns and hooks (scoring, sampling) that enable diversity-aware selection (e.g., using MMR).
+DPPX is inspired by Determinantal Point Processes (DPP): a model that prefers subsets with both strong item quality and low pairwise similarity. The current implementation does not build a full DPP kernel matrix by default, but it supports DPP-like engineering through scoring and sampling hooks.
 
-Türkçe
+Türkçe 🇹🇷
 
-DPPX, hem yüksek kalite hem de düşük ikili benzerlik içeren alt kümeleri tercih eden Determinantal Point Processes (DPP) ilhamlıdır. Bu uygulama varsayılan olarak tam bir DPP çekirdek matrisi oluşturmaz, ancak MMR gibi çeşitlilik odaklı seçimleri destekleyecek puanlama ve örnekleme kancaları sunar.
+DPPX, güçlü öğe kalitesini ve düşük ikili benzerliği bir araya getiren alt kümeleri tercih eden Determinantal Point Processes (DPP) ilhamlıdır. Mevcut uygulama varsayılan olarak tam bir DPP çekirdek matrisi oluşturmaz, ancak puanlama ve örnekleme kancalarıyla DPP benzeri mühendisliği destekler.
 
 ---
 
 ## Performance Considerations / Performans Hususları
 
-English
+English 🇬🇧
 
-- Search is parallelized across `runtime.NumCPU()` workers; each worker keeps a local min-heap of size `k` to limit contention and memory.
-- Precompute vector norms and keep `Similarity`/`Scoring` implementations efficient — they are invoked per candidate.
+- Search is parallelized across `runtime.NumCPU()` workers.
+- Each worker keeps a local min-heap of size `k` to limit contention.
+- Precompute vector norms and keep `Similarity`/`Scoring` fast, since they run per candidate.
 
-Türkçe
+Türkçe 🇹🇷
 
-- Arama `runtime.NumCPU()` işçisi arasında paralelleştirilir; her işçi, içeriği azaltmak için `k` boyutunda yerel bir min-heap tutar.
-- Vektör normlarını önceden hesaplayın ve `Similarity`/`Scoring` uygulamalarını verimli tutun — bunlar aday başına çağrılır.
+- Arama `runtime.NumCPU()` işçileri arasında paralelleştirilir.
+- Her işçi, içeriği sınırlamak için `k` boyutunda yerel bir min-heap tutar.
+- `Similarity` ve `Scoring` fonksiyonlarını aday başına çalıştıkları için hızlı tutun.
 
 ---
 
 ## Project Structure / Proje Yapısı
 
-English
+English 🇬🇧
 
 - `core/engine` — search engine and configuration
 - `core/topk` — top-k min-heap
-- `core/similarity` — similarity functions
-- `core/scoring` — scoring utilities and hooks
-- `core/sampling` — selection/sampling strategies
-- `types` — `Item`, `Query`, `Vector`, `ScoredItem`
+- `core/similarity` — similarity functions and norms
+- `core/scoring` — scoring utilities and pipeline support
+- `core/sampling` — sampling and reranking strategies
+- `core/retriever` — retriever interfaces and memory connector
+- `connectors/qdrant` — external Qdrant retriever connector
+- `types` — data models for items, queries, and scored results
 
-Türkçe
+Türkçe 🇹🇷
 
 - `core/engine` — arama motoru ve yapılandırma
 - `core/topk` — top-k min-heap
-- `core/similarity` — benzerlik fonksiyonları
-- `core/scoring` — puanlama yardımcıları ve kancalar
-- `core/sampling` — seçim/örnekleme stratejileri
-- `types` — `Item`, `Query`, `Vector`, `ScoredItem`
+- `core/similarity` — benzerlik fonksiyonları ve normlar
+- `core/scoring` — puanlama yardımcıları ve pipeline desteği
+- `core/sampling` — örnekleme ve yeniden sıralama stratejileri
+- `core/retriever` — retriever arayüzleri ve bellek bağlayıcısı
+- `connectors/qdrant` — harici Qdrant retriever bağlayıcısı
+- `types` — öğeler, sorgular ve skorlu sonuçlar için veri modelleri
 
 ---
 
 ## Development / Geliştirme Notları
 
-English
+English 🇬🇧
 
-- Keep comments concise and focused on why a piece of code exists or why an optimization is necessary.
-- Avoid changing core search semantics without benchmarks.
+- Keep comments concise and explain why code exists.
+- Don’t change core search semantics without validation.
 
-Türkçe
+Türkçe 🇹🇷
 
-- Yorumları kısa ve kodun neden var olduğunu veya hangi optimizasyonun gerekli olduğunu açıklayacak şekilde tutun.
-- Benchmark olmadan çekirdek arama davranışını değiştirmeyin.
+- Yorumları kısa tutun ve kodun neden var olduğunu açıklayın.
+- Çekirdek arama davranışını doğrulamadan değiştirmeyin.
 
 ---
 
 ## License / Lisans
 
-English & Türkçe
+English 🇬🇧 / Türkçe 🇹🇷
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-Proje MIT Lisansı ile lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakın.
+Bu proje MIT Lisansı ile lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakın.
