@@ -1,0 +1,24 @@
+inserting dataset...
+dataset inserted
+
+running benchmark...
+
+========== RESULTS ==========
+ITEM=ObjectID("6a0cfef63151381a0926c203") SCORE=0.8909 CATEGORY=distributed-systems
+ITEM=ObjectID("6a0cfef63151381a0926c23d") SCORE=0.8902 CATEGORY=recommendation
+ITEM=ObjectID("6a0cfef63151381a0926c216") SCORE=0.8897 CATEGORY=backend
+ITEM=ObjectID("6a0cfef63151381a0926c27c") SCORE=0.8881 CATEGORY=recommendation
+ITEM=ObjectID("6a0cfef63151381a0926c26c") SCORE=0.8863 CATEGORY=vector-search
+ITEM=ObjectID("6a0cfef63151381a0926c20d") SCORE=0.8839 CATEGORY=databases
+ITEM=ObjectID("6a0cfef63151381a0926c2b1") SCORE=0.8832 CATEGORY=ai
+ITEM=ObjectID("6a0cfef63151381a0926c236") SCORE=0.8826 CATEGORY=golang
+ITEM=ObjectID("6a0cfef63151381a0926c288") SCORE=0.8822 CATEGORY=ai
+ITEM=ObjectID("6a0cfef63151381a0926c23f") SCORE=0.8800 CATEGORY=distributed-systems
+
+========== BENCHMARK ==========
+Database: blogs
+Collection: blogs
+Inserted Items: 10000
+Vector Size: 768
+Candidate Pool: 200
+Latency: 1.3667609s
