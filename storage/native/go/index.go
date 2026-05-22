@@ -48,12 +48,21 @@ func (i *Index) Close() {
 		i.ptr = nil
 	}
 }
+
 func (i *Index) Flush() {
 	if i.ptr == nil {
 		return
 	}
 
 	C.dppx_flush(i.ptr)
+}
+
+func (i *Index) Recover() {
+	if i.ptr == nil {
+		return
+	}
+
+	C.dppx_recover(i.ptr)
 }
 
 func boolToInt(value bool) int {

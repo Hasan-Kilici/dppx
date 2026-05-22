@@ -5,8 +5,71 @@
 #include <fstream>
 #include <iostream>
 #include <filesystem>
+#include <unordered_map>
 
 #include "distance.hpp"
+
+namespace {
+
+class CandidateStream {
+public:
+    virtual ~CandidateStream() = default;
+    virtual bool next(SearchResult& out) = 0;
+};
+
+class HNSWSearchStream : public CandidateStream {
+public:
+    HNSWSearchStream(const HNSWIndex* index, const float* query, int k, int efSearch)
+        : position_(0) {
+        if (index) {
+            results_ = index->search(query, k, efSearch);
+        }
+    }
+
+    bool next(SearchResult& out) override {
+        if (position_ >= results_.size()) {
+            return false;
+        }
+        out = results_[position_++];
+        return true;
+    }
+
+private:
+    std::vector<SearchResult> results_;
+    size_t position_;
+};
+
+class SegmentSearchStream : public CandidateStream {
+public:
+    SegmentSearchStream(const Segment* segment, const float* query, int k)
+        : position_(0) {
+        if (segment) {
+            results_ = segment->search(query, k);
+        }
+    }
+
+    bool next(SearchResult& out) override {
+        if (position_ >= results_.size()) {
+            return false;
+        }
+        out = results_[position_++];
+        return true;
+    }
+
+private:
+    std::vector<SearchResult> results_;
+    size_t position_;
+};
+
+std::vector<SearchResult> mergeTopK(const std::unordered_map<uint64_t, float>& bestScores, int k) {
+    FixedMinHeap heap(k);
+    for (const auto& entry : bestScores) {
+        heap.Add({entry.first, entry.second});
+    }
+    return heap.Result();
+}
+
+} // namespace
 
 IndexEngine::IndexEngine(const StorageConfig& config)
     : config_(config) {
@@ -96,22 +159,6 @@ void IndexEngine::recover() {
 }
 
 
-void IndexEngine::insert(uint64_t id, const float* vector) {
-    if (config_.dimension <= 0 || vector == nullptr) {
-        return;
-    }
-
-    if (config_.enableWAL) {
-        writeWalInsert(id, vector);
-    }
-
-    if (config_.useHNSW && hnsw_) {
-        hnsw_->insert(id, vector);
-    }
-
-    insertInternal(id, vector);
-}
-
 void IndexEngine::insertInternal(uint64_t id, const float* vector) {
     if (segments_.empty()) {
         segments_.emplace_back(config_.path, 0, config_.dimension);
@@ -137,35 +184,63 @@ void IndexEngine::insertBatch(const uint64_t* ids, const float* vectors, int cou
 }
 
 void IndexEngine::remove(uint64_t id) {
-    if (config_.enableWAL) {
-        if (wal_) {
-            wal_->appendDelete(id);
-        }
+    if (wal_) {
+        wal_->appendDelete(id);
     }
+    deletedIds_.insert(id);
 }
 
-std::vector<SearchResult> IndexEngine::search(const float* query, int dim, int k, int efSearch) const {
+std::vector<SearchResult> IndexEngine::search(const SearchRequest& request) const {
     std::vector<SearchResult> merged;
-    if (!query || dim != config_.dimension || k <= 0) {
+    if (!request.query || request.dim != config_.dimension || request.k <= 0) {
         return merged;
     }
 
-    if (config_.useHNSW && hnsw_) {
-        merged = hnsw_->search(query, k, efSearch > 0 ? efSearch : config_.efSearch);
+    std::unordered_map<uint64_t, float> uniqueScores;
+    std::vector<std::unique_ptr<CandidateStream>> streams;
+
+    if (request.includeHNSW && config_.useHNSW && hnsw_) {
+        streams.push_back(std::make_unique<HNSWSearchStream>(
+            hnsw_.get(),
+            request.query,
+            request.k,
+            request.efSearch > 0 ? request.efSearch : config_.efSearch
+        ));
     }
 
-    for (const auto& segment : segments_) {
-        const auto partial = segment.search(query, k);
-        merged.insert(merged.end(), partial.begin(), partial.end());
+    if (request.includeSegments) {
+        for (const auto& segment : segments_) {
+            streams.push_back(std::make_unique<SegmentSearchStream>(
+                &segment,
+                request.query,
+                request.k
+            ));
+        }
     }
 
-    std::sort(merged.begin(), merged.end(), [](const SearchResult& a, const SearchResult& b) {
-        return a.score > b.score;
-    });
-    if (static_cast<int>(merged.size()) > k) {
-        merged.resize(k);
+    for (const auto& stream : streams) {
+        SearchResult result;
+        while (stream->next(result)) {
+            if (deletedIds_.count(result.id)) {
+                continue;
+            }
+            auto it = uniqueScores.find(result.id);
+            if (it == uniqueScores.end() || result.score > it->second) {
+                uniqueScores[result.id] = result.score;
+            }
+        }
     }
-    return merged;
+
+    return mergeTopK(uniqueScores, request.k);
+}
+
+std::vector<SearchResult> IndexEngine::search(const float* query, int dim, int k, int efSearch) const {
+    SearchRequest request;
+    request.query = query;
+    request.dim = dim;
+    request.k = k;
+    request.efSearch = efSearch;
+    return search(request);
 }
 
 void IndexEngine::flush() {
@@ -183,6 +258,23 @@ void IndexEngine::writeWalInsert(uint64_t id, const float* vector) {
     if (wal_) {
         wal_->appendInsert(id, vector, config_.dimension);
     }
+}
+
+void IndexEngine::insert(uint64_t id, const float* vector) {
+    if (config_.dimension <= 0 || vector == nullptr) {
+        return;
+    }
+
+    if (config_.enableWAL) {
+        writeWalInsert(id, vector);
+    }
+
+    if (config_.useHNSW && hnsw_) {
+        hnsw_->insert(id, vector);
+    }
+
+    deletedIds_.erase(id);
+    insertInternal(id, vector);
 }
 
 void IndexEngine::pruneStaleSegments() {

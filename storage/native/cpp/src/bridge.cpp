@@ -6,6 +6,27 @@
 
 extern "C" {
 
+class SearchCursor {
+public:
+    explicit SearchCursor(std::vector<SearchResult>&& results)
+        : results_(std::move(results)), position_(0) {
+    }
+
+    bool next(CSearchResult* out) {
+        if (!out || position_ >= results_.size()) {
+            return false;
+        }
+        out->id = results_[position_].id;
+        out->score = results_[position_].score;
+        position_++;
+        return true;
+    }
+
+private:
+    std::vector<SearchResult> results_;
+    size_t position_;
+};
+
 void* dppx_create_index(NativeConfig cfg) {
     StorageConfig config;
     config.dimension = cfg.dimension;
@@ -46,30 +67,66 @@ void dppx_delete(void* ptr, uint64_t id) {
     }
 }
 
-void dppx_search(void* ptr, const float* query, int dim, int k, CSearchResult* out) {
+int dppx_search(void* ptr, const float* query, int dim, int k, CSearchResult* out) {
     auto* engine = static_cast<IndexEngine*>(ptr);
-    if (!engine || !query || !out) {
-        return;
+    if (!engine || !query || !out || k <= 0) {
+        return 0;
     }
 
     auto results = engine->search(query, dim, k, 0);
-    for (size_t i = 0; i < results.size(); ++i) {
+    const size_t count = std::min(results.size(), static_cast<size_t>(k));
+    for (size_t i = 0; i < count; ++i) {
         out[i].id = results[i].id;
         out[i].score = results[i].score;
     }
+    return static_cast<int>(count);
 }
 
-void dppx_search_options(void* ptr, const float* query, int dim, int k, int efSearch, CSearchResult* out) {
+int dppx_search_options(void* ptr, const float* query, int dim, int k, int efSearch, CSearchResult* out) {
     auto* engine = static_cast<IndexEngine*>(ptr);
-    if (!engine || !query || !out) {
-        return;
+    if (!engine || !query || !out || k <= 0) {
+        return 0;
     }
 
     auto results = engine->search(query, dim, k, efSearch);
-    for (size_t i = 0; i < results.size(); ++i) {
+    const size_t count = std::min(results.size(), static_cast<size_t>(k));
+    for (size_t i = 0; i < count; ++i) {
         out[i].id = results[i].id;
         out[i].score = results[i].score;
     }
+    return static_cast<int>(count);
+}
+
+CSearchCursor dppx_search_cursor(void* ptr, const float* query, int dim, int k) {
+    auto* engine = static_cast<IndexEngine*>(ptr);
+    if (!engine || !query || k <= 0) {
+        return nullptr;
+    }
+
+    auto results = engine->search(query, dim, k, 0);
+    return new SearchCursor(std::move(results));
+}
+
+CSearchCursor dppx_search_cursor_options(void* ptr, const float* query, int dim, int k, int efSearch) {
+    auto* engine = static_cast<IndexEngine*>(ptr);
+    if (!engine || !query || k <= 0) {
+        return nullptr;
+    }
+
+    auto results = engine->search(query, dim, k, efSearch);
+    return new SearchCursor(std::move(results));
+}
+
+int dppx_search_cursor_next(CSearchCursor cursor, CSearchResult* out) {
+    auto* c = static_cast<SearchCursor*>(cursor);
+    if (!c || !out) {
+        return 0;
+    }
+    return c->next(out) ? 1 : 0;
+}
+
+void dppx_search_cursor_free(CSearchCursor cursor) {
+    delete static_cast<SearchCursor*>(cursor);
 }
 
 void dppx_flush(void* index) {

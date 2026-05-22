@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 #include "hnsw.hpp"
@@ -32,6 +34,17 @@ public:
     void insert(uint64_t id, const float* vector);
     void insertBatch(const uint64_t* ids, const float* vectors, int count, int dim);
     void remove(uint64_t id);
+
+    struct SearchRequest {
+        const float* query = nullptr;
+        int dim = 0;
+        int k = 0;
+        int efSearch = 0;
+        bool includeHNSW = true;
+        bool includeSegments = true;
+    };
+
+    std::vector<SearchResult> search(const SearchRequest& request) const;
     std::vector<SearchResult> search(const float* query, int dim, int k, int efSearch) const;
     void flush();
     void recover();
@@ -48,5 +61,6 @@ private:
     std::vector<Segment> segments_;
     std::vector<PayloadDocument> payloads_;
     std::unique_ptr<WalWriter> wal_;
+    std::unordered_set<uint64_t> deletedIds_;
     std::vector<uint64_t> idIndex_;
 };
